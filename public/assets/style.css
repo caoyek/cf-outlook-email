@@ -589,10 +589,11 @@ tr:hover td { background: var(--bg-hover); }
   border-right: 1px solid var(--border);
 }
 .dash-acct-pane-header {
-  padding: 14px 16px; font-size: 12px; font-weight: 600;
+  padding: 12px 16px; font-size: 12px; font-weight: 600;
   color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;
   border-bottom: 1px solid var(--border); position: sticky; top: 0;
   background: var(--bg-card-solid); z-index: 1;
+  display: flex; align-items: center; min-height: 42px;
 }
 .dash-acct-item {
   display: flex; align-items: center; gap: 10px;
@@ -624,7 +625,7 @@ tr:hover td { background: var(--bg-hover); }
   padding: 12px 16px; font-size: 12px; font-weight: 600;
   color: var(--text-dim); border-bottom: 1px solid var(--border);
   position: sticky; top: 0; background: var(--bg-card-solid); z-index: 1;
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center; justify-content: space-between; min-height: 42px;
 }
 .dash-mail-item {
   padding: 12px 16px; cursor: pointer;
@@ -634,7 +635,7 @@ tr:hover td { background: var(--bg-hover); }
 .dash-mail-item:last-child { border-bottom: none; }
 .dash-mail-item:hover { background: var(--bg-hover); }
 .dash-mail-item.active { background: var(--bg-active); }
-.dash-mail-item.unread { border-left: 3px solid var(--primary); }
+.dash-mail-item.unread .mail-subject { color: var(--primary-light); }
 .dash-mail-item .mail-from {
   font-size: 12px; color: var(--text-muted); margin-bottom: 2px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
