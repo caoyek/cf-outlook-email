@@ -386,16 +386,16 @@ tr:hover td { background: var(--bg-hover); }
 }
 
 /* ===== Toast ===== */
-.toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 999; display: flex; flex-direction: column-reverse; gap: 8px; }
+.toast-container { position: fixed; top: 24px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 8px; align-items: center; }
 .toast {
-  padding: 12px 20px; border-radius: var(--radius);
-  font-size: 13.5px; font-weight: 460; max-width: 380px;
-  backdrop-filter: blur(16px); box-shadow: var(--shadow);
-  animation: toastIn 0.3s ease;
+  padding: 12px 28px; border-radius: var(--radius);
+  font-size: 14px; font-weight: 500; max-width: 420px;
+  backdrop-filter: blur(16px); box-shadow: var(--shadow-lg);
+  animation: toastIn 0.35s ease;
 }
 .toast-success { background: var(--success-bg); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.15); }
 .toast-error { background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(244, 63, 94, 0.15); }
-@keyframes toastIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes toastIn { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
 /* ===== Email Layout (classic 3-pane) ===== */
 .email-layout {
