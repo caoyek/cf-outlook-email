@@ -589,11 +589,11 @@ tr:hover td { background: var(--bg-hover); }
   border-right: 1px solid var(--border);
 }
 .dash-acct-pane-header {
-  padding: 0 16px; font-size: 12px; font-weight: 600;
-  color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 0 10px; font-size: 12px; font-weight: 600;
+  color: var(--text-dim);
   border-bottom: 1px solid var(--border); position: sticky; top: 0;
   background: var(--bg-card-solid); z-index: 1;
-  display: flex; align-items: center; height: 44px;
+  display: flex; align-items: center; height: 44px; gap: 6px;
 }
 .dash-acct-item {
   display: flex; align-items: center; gap: 10px;

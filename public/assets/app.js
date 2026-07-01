@@ -252,21 +252,6 @@ async function renderDashboard(el) {
   const avatarColors = ['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981','#3b82f6','#ef4444','#14b8a6'];
   function acctColor(i) { return avatarColors[i % avatarColors.length]; }
 
-  // 渲染邮箱列表
-  const acctListHtml = state.accounts.length === 0
-    ? '<div class="empty-state" style="padding:30px">暂无邮箱</div>'
-    : state.accounts.map((a, i) => {
-        const initial = (a.email || '?')[0].toUpperCase();
-        const statusIcon = a.status === 'active' ? '🟢' : a.status === 'error' ? '🔴' : '⚪';
-        const statusText = a.status === 'active' ? '活跃' : a.status === 'error' ? '异常' : '已禁用';
-        const statusColor = a.status === 'active' ? 'var(--success)' : a.status === 'error' ? 'var(--danger)' : 'var(--text-dim)';
-        return `<div class="dash-acct-item" id="dashAcct${a.id}" onclick="dashSelectAccount(${a.id})">
-          <div class="acct-avatar" style="background:${acctColor(i)}">${initial}</div>
-          <div class="acct-info">
-            <div class="acct-email" title="${esc(a.email)}">${esc(a.email)}</div>
-            <div class="acct-status" style="color:${statusColor}">${statusIcon} ${statusText}</div>
-          </div>
-        </div>`;
       }).join('');
 
   el.innerHTML = `
@@ -291,8 +276,14 @@ async function renderDashboard(el) {
       </h3>
       <div class="dash-email-grid">
         <div class="dash-acct-pane">
-          <div class="dash-acct-pane-header">邮箱列表 (${state.accounts.length})</div>
-          ${acctListHtml}
+          <div class="dash-acct-pane-header">
+            <select class="form-select" id="dashGroupFilter" onchange="dashFilterGroup()" style="font-size:12px;padding:4px 8px;height:30px;min-width:0;flex:1;border:1px solid var(--border)">
+              <option value="">全部邮箱 (${state.accounts.length})</option>
+              ${state.groups.map(g => `<option value="${g.id}"><span class="color-dot" style="background:${esc(g.color)}"></span>${esc(g.name)} (${state.accounts.filter(a => a.group_id === g.id).length})</option>`).join('')}
+            </select>
+            <button class="btn btn-sm" onclick="navigate('groups')" title="管理分组" style="padding:4px 8px;font-size:11px;flex-shrink:0">⚙</button>
+          </div>
+          <div id="dashAcctList">${dashBuildAcctListHtml(state.accounts)}</div>
         </div>
         <div class="dash-mail-pane" id="dashMailPane">
           <div class="dash-mail-pane-header">收件箱</div>
@@ -413,6 +404,35 @@ function dashCopyEmail() {
 function dashRefresh() {
   if (dashEmailState.accountId) dashSelectAccount(dashEmailState.accountId);
   else toast('请先选择邮箱', 'error');
+}
+
+// 仪表盘：生成邮箱列表 HTML
+const dashAvatarColors = ['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981','#3b82f6','#ef4444','#14b8a6'];
+function dashBuildAcctListHtml(accounts) {
+  if (accounts.length === 0) return '<div class="empty-state" style="padding:30px">该分组暂无邮箱</div>';
+  return accounts.map((a, i) => {
+    const initial = (a.email || '?')[0].toUpperCase();
+    const statusIcon = a.status === 'active' ? '🟢' : a.status === 'error' ? '🔴' : '⚪';
+    const statusText = a.status === 'active' ? '活跃' : a.status === 'error' ? '异常' : '已禁用';
+    const statusColor = a.status === 'active' ? 'var(--success)' : a.status === 'error' ? 'var(--danger)' : 'var(--text-dim)';
+    const color = dashAvatarColors[i % dashAvatarColors.length];
+    const active = dashEmailState.accountId === a.id ? ' active' : '';
+    return `<div class="dash-acct-item${active}" id="dashAcct${a.id}" onclick="dashSelectAccount(${a.id})">
+      <div class="acct-avatar" style="background:${color}">${initial}</div>
+      <div class="acct-info">
+        <div class="acct-email" title="${esc(a.email)}">${esc(a.email)}</div>
+        <div class="acct-status" style="color:${statusColor}">${statusIcon} ${statusText}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// 仪表盘：按分组筛选邮箱列表
+function dashFilterGroup() {
+  const groupId = document.getElementById('dashGroupFilter')?.value;
+  const filtered = groupId ? state.accounts.filter(a => a.group_id === parseInt(groupId)) : state.accounts;
+  const listEl = document.getElementById('dashAcctList');
+  if (listEl) listEl.innerHTML = dashBuildAcctListHtml(filtered);
 }
 
 // Jump to accounts page, optionally pre-filtering by status (from dashboard cards)
