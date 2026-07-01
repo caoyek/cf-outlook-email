@@ -190,6 +190,28 @@ async function renderDashboard(el) {
     { label: '活跃', value: activeCount, color: 'var(--success)', bg: 'var(--success-bg)', go: "goToAccounts('active')", icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>' },
     { label: '异常', value: errorCount, color: 'var(--danger)', bg: 'var(--danger-bg)', go: "goToAccounts('error')", icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' },
   ];
+
+  // 生成邮箱头像颜色
+  const avatarColors = ['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981','#3b82f6','#ef4444','#14b8a6'];
+  function acctColor(i) { return avatarColors[i % avatarColors.length]; }
+
+  // 渲染邮箱列表
+  const acctListHtml = state.accounts.length === 0
+    ? '<div class="empty-state" style="padding:30px">暂无邮箱</div>'
+    : state.accounts.map((a, i) => {
+        const initial = (a.email || '?')[0].toUpperCase();
+        const statusIcon = a.status === 'active' ? '🟢' : a.status === 'error' ? '🔴' : '⚪';
+        const statusText = a.status === 'active' ? '活跃' : a.status === 'error' ? '异常' : '已禁用';
+        const statusColor = a.status === 'active' ? 'var(--success)' : a.status === 'error' ? 'var(--danger)' : 'var(--text-dim)';
+        return `<div class="dash-acct-item" id="dashAcct${a.id}" onclick="dashSelectAccount(${a.id})">
+          <div class="acct-avatar" style="background:${acctColor(i)}">${initial}</div>
+          <div class="acct-info">
+            <div class="acct-email" title="${esc(a.email)}">${esc(a.email)}</div>
+            <div class="acct-status" style="color:${statusColor}">${statusIcon} ${statusText}</div>
+          </div>
+        </div>`;
+      }).join('');
+
   el.innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px;">
       ${stats.map(s => `<div class="card" style="display:flex;align-items:center;gap:16px;padding:20px 22px;cursor:pointer" onclick="${s.go}" title="点击进入">
@@ -204,8 +226,118 @@ async function renderDashboard(el) {
     ${state.accounts.length === 0 ? `<div class="card" style="text-align:center;padding:40px">
       <div style="font-size:14px;color:var(--text-muted);margin-bottom:12px">还没有添加邮箱账号</div>
       <button class="btn btn-primary" onclick="navigate('accounts')">前往添加</button>
-    </div>` : ''}
+    </div>` : `
+    <div class="dash-email-section">
+      <h3>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        邮件速览
+      </h3>
+      <div class="dash-email-grid">
+        <div class="dash-acct-pane">
+          <div class="dash-acct-pane-header">邮箱列表 (${state.accounts.length})</div>
+          ${acctListHtml}
+        </div>
+        <div class="dash-mail-pane" id="dashMailPane">
+          <div class="dash-mail-pane-header">收件箱</div>
+          <div class="empty-state" style="padding:40px">点击左侧邮箱查看邮件</div>
+        </div>
+        <div class="dash-detail-pane" id="dashDetailPane">
+          <div class="empty-state" style="padding:40px">选择一封邮件查看详情</div>
+        </div>
+      </div>
+    </div>`}
   `;
+}
+
+// 仪表盘邮件查询的状态
+let dashEmailState = { accountId: null, emails: [], selectedIndex: null };
+
+// 仪表盘：选中邮箱，加载邮件列表
+async function dashSelectAccount(accountId) {
+  dashEmailState = { accountId, emails: [], selectedIndex: null };
+  // 更新选中样式
+  document.querySelectorAll('.dash-acct-item').forEach(el => el.classList.remove('active'));
+  const activeEl = document.getElementById('dashAcct' + accountId);
+  if (activeEl) activeEl.classList.add('active');
+
+  const mailPane = document.getElementById('dashMailPane');
+  const detailPane = document.getElementById('dashDetailPane');
+  const acc = state.accounts.find(a => a.id === accountId);
+  const acctEmail = acc ? acc.email : '';
+
+  mailPane.innerHTML = `<div class="dash-mail-pane-header">${esc(acctEmail)}</div><div class="loading"><div class="spinner"></div>加载邮件...</div>`;
+  detailPane.innerHTML = '<div class="empty-state" style="padding:40px">选择一封邮件查看详情</div>';
+
+  const res = await api(`/accounts/${accountId}/emails?top=30&skip=0&folder=inbox`);
+  if (!res?.success || res.data?.error) {
+    mailPane.innerHTML = `<div class="dash-mail-pane-header">${esc(acctEmail)}</div><div class="empty-state" style="color:var(--danger);padding:30px">${esc(res?.data?.error || res?.error?.message || '获取邮件失败')}</div>`;
+    return;
+  }
+
+  const items = res.data?.items || [];
+  dashEmailState.emails = items;
+
+  if (items.length === 0) {
+    mailPane.innerHTML = `<div class="dash-mail-pane-header">${esc(acctEmail)}</div><div class="empty-state" style="padding:30px">收件箱暂无邮件</div>`;
+    return;
+  }
+
+  mailPane.innerHTML = `<div class="dash-mail-pane-header"><span>${esc(acctEmail)}</span><span style="font-size:11px;color:var(--text-dim)">${items.length} 封</span></div>`
+    + items.map((e, i) => `<div class="dash-mail-item ${e.isRead ? '' : 'unread'}" id="dashMail${i}" onclick="dashViewEmail(${i})">
+        <div class="mail-from">${esc(e.from?.name || e.from?.address || '未知')}</div>
+        <div class="mail-subject">${esc(e.subject)}</div>
+        <div class="mail-preview">${esc(e.bodyPreview)}</div>
+        <div class="mail-date">${formatDate(e.receivedDateTime)}${e.hasAttachments ? ' 📎' : ''}</div>
+      </div>`).join('');
+}
+
+// 仪表盘：查看邮件详情
+async function dashViewEmail(index) {
+  const email = dashEmailState.emails[index];
+  if (!email) return;
+  dashEmailState.selectedIndex = index;
+
+  // 更新选中样式
+  document.querySelectorAll('.dash-mail-item').forEach((el, i) => el.classList.toggle('active', i === index));
+
+  const pane = document.getElementById('dashDetailPane');
+  pane.innerHTML = '<div class="loading"><div class="spinner"></div>加载详情...</div>';
+
+  const res = await api(`/accounts/${dashEmailState.accountId}/emails/${email.id}`);
+  if (!res?.success) {
+    pane.innerHTML = `<div class="empty-state" style="color:var(--danger);padding:30px">${esc(res?.error?.message || '获取详情失败')}</div>`;
+    return;
+  }
+
+  const e = res.data;
+  const bodyContent = e.body?.contentType === 'html'
+    ? `<iframe id="dashEmailFrame" sandbox="allow-same-origin" onload="dashResizeFrame(this)"></iframe>`
+    : `<pre style="white-space:pre-wrap;font-family:inherit">${esc(e.body?.content || e.bodyPreview || '')}</pre>`;
+
+  pane.innerHTML = `
+    <h2>${esc(e.subject)}</h2>
+    <div class="detail-meta">
+      <span>发件人: ${esc(e.from?.name || '')} &lt;${esc(e.from?.address || '')}&gt;</span><br>
+      <span>收件人: ${(e.toRecipients || []).map(r => esc(r.address)).join(', ')}</span><br>
+      ${e.ccRecipients?.length ? `<span>抄送: ${e.ccRecipients.map(r => esc(r.address)).join(', ')}</span><br>` : ''}
+      <span>时间: ${formatDate(e.receivedDateTime)}</span>
+    </div>
+    <div class="detail-body">${bodyContent}</div>
+  `;
+
+  if (e.body?.contentType === 'html') {
+    const frame = document.getElementById('dashEmailFrame');
+    if (frame) {
+      const doc = frame.contentDocument;
+      doc.open();
+      doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:sans-serif;font-size:14px;color:#333;margin:12px;}</style></head><body>${e.body.content}</body></html>`);
+      doc.close();
+    }
+  }
+}
+
+function dashResizeFrame(frame) {
+  try { frame.style.height = frame.contentDocument.body.scrollHeight + 40 + 'px'; } catch {}
 }
 
 // Jump to accounts page, optionally pre-filtering by status (from dashboard cards)
