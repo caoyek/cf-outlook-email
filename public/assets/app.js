@@ -104,6 +104,63 @@ function toast(msg, type = 'success', duration = 3000) {
   setTimeout(() => el.remove(), duration);
 }
 
+// ========== 验证码提取 ==========
+function extractVerifyCode(text) {
+  if (!text) return null;
+  // 去除 HTML 标签，只保留纯文本
+  const plain = text.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/&#?\w+;/g, ' ');
+
+  // 关键词列表
+  const keywords = [
+    '验证码', '校验码', '确认码', '动态码', '安全码', '一次性密码',
+    'verification code', 'verify code', 'security code',
+    'confirmation code', 'one-time code', 'passcode', 'your code',
+    'login code', 'access code', 'auth code', 'otp', 'pin code',
+    'code is', 'code:', 'código'
+  ];
+
+  // 第一步：在关键词附近找 4-8 位数字码
+  for (const kw of keywords) {
+    const kwIdx = plain.toLowerCase().indexOf(kw.toLowerCase());
+    if (kwIdx === -1) continue;
+    // 取关键词前后 120 字符范围
+    const start = Math.max(0, kwIdx - 30);
+    const end = Math.min(plain.length, kwIdx + kw.length + 120);
+    const nearby = plain.substring(start, end);
+    // 优先匹配 4-8 位纯数字
+    const numMatch = nearby.match(/(?:^|[^0-9])(\d{4,8})(?:$|[^0-9])/); 
+    if (numMatch) return numMatch[1];
+    // 也匹配 4-8 位字母数字混合码（关键词后紧跟的）
+    const afterKw = plain.substring(kwIdx + kw.length, kwIdx + kw.length + 40);
+    const alphaMatch = afterKw.match(/^[\s:：]*([A-Za-z0-9]{4,8})(?:\s|$|[.,;!])/); 
+    if (alphaMatch) return alphaMatch[1];
+  }
+
+  // 第二步：兜底 — 全文找独立的 4-6 位纯数字（排除年份、日期等）
+  const allNums = [...plain.matchAll(/(?:^|[^0-9\/\-.])(\d{4,6})(?:$|[^0-9\/\-.])/g)];
+  for (const m of allNums) {
+    const n = m[1];
+    // 排除年份 (2020-2030)、常见日期格式
+    if (/^20[12]\d$/.test(n)) continue;
+    if (/^(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])$/.test(n)) continue;
+    // 排除时间如 1234 可能是 12:34
+    if (n.length === 4 && parseInt(n.substring(0,2)) <= 24 && parseInt(n.substring(2)) <= 59) continue;
+    return n;
+  }
+
+  return null;
+}
+
+function renderCodeBar(code) {
+  if (!code) return '';
+  return `<div class="code-bar">
+    <span class="code-icon">🔑</span>
+    <span class="code-label">检测到验证码:</span>
+    <span class="code-value">${esc(code)}</span>
+    <button class="code-copy-btn" onclick="navigator.clipboard.writeText('${esc(code)}').then(()=>toast('已复制验证码: ${esc(code)}')).catch(()=>toast('复制失败','error'))">复制验证码</button>
+  </div>`;
+}
+
 // ========== Auth ==========
 async function checkAuth() {
   try {
@@ -314,8 +371,13 @@ async function dashViewEmail(index) {
     ? `<iframe id="dashEmailFrame" sandbox="allow-same-origin" onload="dashResizeFrame(this)"></iframe>`
     : `<pre style="white-space:pre-wrap;font-family:inherit">${esc(e.body?.content || e.bodyPreview || '')}</pre>`;
 
+  // 提取验证码
+  const codeText = e.body?.content || e.bodyPreview || '';
+  const verifyCode = extractVerifyCode(codeText);
+
   pane.innerHTML = `
     <h2>${esc(e.subject)}</h2>
+    ${renderCodeBar(verifyCode)}
     <div class="detail-meta">
       <span>发件人: ${esc(e.from?.name || '')} &lt;${esc(e.from?.address || '')}&gt;</span><br>
       <span>收件人: ${(e.toRecipients || []).map(r => esc(r.address)).join(', ')}</span><br>
@@ -1190,12 +1252,17 @@ async function viewEmail(index) {
     ? `<iframe id="emailFrame" sandbox="allow-same-origin" onload="resizeFrame(this)"></iframe>`
     : `<pre style="white-space:pre-wrap;font-family:inherit">${esc(e.body?.content || e.bodyPreview || '')}</pre>`;
 
+  // 提取验证码
+  const codeText2 = e.body?.content || e.bodyPreview || '';
+  const verifyCode2 = extractVerifyCode(codeText2);
+
   pane.innerHTML = `
     <div class="detail-pane" style="border:none;padding:0">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
         <h2 style="flex:1">${esc(e.subject)}</h2>
         <button class="btn btn-danger btn-sm" style="flex-shrink:0" onclick="deleteCurrentEmail('${esc(e.id)}')">删除</button>
       </div>
+      ${renderCodeBar(verifyCode2)}
       <div class="detail-meta">
         <span>发件人: ${esc(e.from?.name || '')} &lt;${esc(e.from?.address || '')}&gt;</span><br>
         <span>收件人: ${(e.toRecipients || []).map(r => esc(r.address)).join(', ')}</span><br>
