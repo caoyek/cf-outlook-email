@@ -426,7 +426,6 @@ function dashBuildAcctListHtml(accounts) {
       <div class="acct-info">
         <div class="acct-email" title="${esc(a.email)}">${esc(a.email)}</div>
         <div class="acct-status" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-          <span style="color:${statusColor}">${statusIcon} ${statusText}</span>
           <select class="dash-group-tag" style="background:${esc(grpColor)}20;color:${esc(grpColor)};border:1px solid ${esc(grpColor)}40"
             onclick="event.stopPropagation()" onchange="dashMoveGroup(${a.id},this.value)">
             ${groupOpts}
