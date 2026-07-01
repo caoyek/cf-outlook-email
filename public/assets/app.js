@@ -284,7 +284,7 @@ async function renderDashboard(el) {
           <div id="dashAcctList">${dashBuildAcctListHtml(state.accounts)}</div>
         </div>
         <div class="dash-mail-pane" id="dashMailPane">
-          <div class="dash-mail-pane-header">收件箱</div>
+          <div class="dash-mail-pane-header"><span>收件箱</span></div>
           <div class="empty-state" style="padding:40px">点击左侧邮箱查看邮件</div>
         </div>
         <div class="dash-detail-pane" id="dashDetailPane">
@@ -311,12 +311,12 @@ async function dashSelectAccount(accountId) {
   const acc = state.accounts.find(a => a.id === accountId);
   const acctEmail = acc ? acc.email : '';
 
-  mailPane.innerHTML = `<div class="dash-mail-pane-header"><span>${esc(acctEmail)}</span><span style="display:flex;gap:6px"><button class="btn btn-sm" onclick="dashCopyEmail()" title="复制邮箱">📋</button><button class="btn btn-sm" onclick="dashRefresh()" title="刷新邮件">🔄</button></span></div><div class="loading"><div class="spinner"></div>加载邮件...</div>`;
+  mailPane.innerHTML = `<div class="dash-mail-pane-header"><span>收件箱</span><span style="display:flex;gap:6px"><button class="btn btn-sm" onclick="dashCopyEmail()" title="复制邮箱">📋</button><button class="btn btn-sm" onclick="dashRefresh()" title="刷新邮件">🔄</button></span></div><div class="loading"><div class="spinner"></div>加载邮件...</div>`;
   detailPane.innerHTML = '<div class="empty-state" style="padding:40px">选择一封邮件查看详情</div>';
 
   const res = await api(`/accounts/${accountId}/emails?top=30&skip=0&folder=inbox`);
   if (!res?.success || res.data?.error) {
-    mailPane.innerHTML = `<div class="dash-mail-pane-header"><span>${esc(acctEmail)}</span><span style="display:flex;gap:6px"><button class="btn btn-sm" onclick="dashCopyEmail()" title="复制邮箱">📋</button><button class="btn btn-sm" onclick="dashRefresh()" title="刷新邮件">🔄</button></span></div><div class="empty-state" style="color:var(--danger);padding:30px">${esc(res?.data?.error || res?.error?.message || '获取邮件失败')}</div>`;
+    mailPane.innerHTML = `<div class="dash-mail-pane-header"><span>收件箱</span><span style="display:flex;gap:6px"><button class="btn btn-sm" onclick="dashCopyEmail()" title="复制邮箱">📋</button><button class="btn btn-sm" onclick="dashRefresh()" title="刷新邮件">🔄</button></span></div><div class="empty-state" style="color:var(--danger);padding:30px">${esc(res?.data?.error || res?.error?.message || '获取邮件失败')}</div>`;
     return;
   }
 
@@ -324,11 +324,11 @@ async function dashSelectAccount(accountId) {
   dashEmailState.emails = items;
 
   if (items.length === 0) {
-    mailPane.innerHTML = `<div class="dash-mail-pane-header"><span>${esc(acctEmail)}</span><span style="display:flex;gap:6px"><button class="btn btn-sm" onclick="dashCopyEmail()" title="复制邮箱">📋</button><button class="btn btn-sm" onclick="dashRefresh()" title="刷新邮件">🔄</button></span></div><div class="empty-state" style="padding:30px">收件箱暂无邮件</div>`;
+    mailPane.innerHTML = `<div class="dash-mail-pane-header"><span>收件箱</span><span style="display:flex;gap:6px"><button class="btn btn-sm" onclick="dashCopyEmail()" title="复制邮箱">📋</button><button class="btn btn-sm" onclick="dashRefresh()" title="刷新邮件">🔄</button></span></div><div class="empty-state" style="padding:30px">收件箱暂无邮件</div>`;
     return;
   }
 
-  mailPane.innerHTML = `<div class="dash-mail-pane-header"><span>${esc(acctEmail)}</span><span style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;color:var(--text-dim)">${items.length} 封</span><button class="btn btn-sm" onclick="dashCopyEmail()" title="复制邮箱">📋</button><button class="btn btn-sm" onclick="dashRefresh()" title="刷新邮件">🔄</button></span></div>`
+  mailPane.innerHTML = `<div class="dash-mail-pane-header"><span>收件箱</span><span style="display:flex;align-items:center;gap:6px"><button class="btn btn-sm" onclick="dashCopyEmail()" title="复制邮箱">📋</button><button class="btn btn-sm" onclick="dashRefresh()" title="刷新邮件">🔄</button></span></div>`
     + items.map((e, i) => `<div class="dash-mail-item ${e.isRead ? '' : 'unread'}" id="dashMail${i}" onclick="dashViewEmail(${i})">
         <div class="mail-from">${esc(e.from?.name || e.from?.address || '未知')}</div>
         <div class="mail-subject">${esc(e.subject)}</div>

@@ -574,7 +574,7 @@ tr:hover td { background: var(--bg-hover); }
 .dash-email-section h3 svg { color: var(--primary); }
 .dash-email-grid {
   display: grid;
-  grid-template-columns: 240px 340px 1fr;
+  grid-template-columns: auto 340px 1fr;
   gap: 0;
   height: calc(100vh - var(--topbar-h) - 220px);
   min-height: 400px;
@@ -611,8 +611,7 @@ tr:hover td { background: var(--bg-hover); }
 }
 .dash-acct-item .acct-info { flex: 1; min-width: 0; }
 .dash-acct-item .acct-email {
-  font-size: 12.5px; font-weight: 500; white-space: nowrap;
-  overflow: hidden; text-overflow: ellipsis;
+  font-size: 12.5px; font-weight: 500;
 }
 .dash-acct-item .acct-status {
   font-size: 11px; margin-top: 2px;
