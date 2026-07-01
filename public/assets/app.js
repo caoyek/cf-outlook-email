@@ -213,7 +213,7 @@ async function renderDashboard(el) {
       }).join('');
 
   el.innerHTML = `
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:12px;">
       ${stats.map(s => `<div class="card" style="display:flex;align-items:center;gap:16px;padding:20px 22px;cursor:pointer" onclick="${s.go}" title="点击进入">
         <div style="width:44px;height:44px;border-radius:12px;background:${s.bg};display:flex;align-items:center;justify-content:center;color:${s.color};flex-shrink:0">${s.icon}</div>
         <div><div style="font-size:28px;font-weight:700;color:${s.color};line-height:1.1">${s.value}</div><div style="color:var(--text-dim);font-size:12.5px;margin-top:2px">${s.label}</div></div>
@@ -265,12 +265,12 @@ async function dashSelectAccount(accountId) {
   const acc = state.accounts.find(a => a.id === accountId);
   const acctEmail = acc ? acc.email : '';
 
-  mailPane.innerHTML = `<div class="dash-mail-pane-header">${esc(acctEmail)}</div><div class="loading"><div class="spinner"></div>加载邮件...</div>`;
+  mailPane.innerHTML = `<div class="dash-mail-pane-header"><span>${esc(acctEmail)}</span><span style="display:flex;gap:6px"><button class="btn btn-sm" onclick="dashCopyEmail()" title="复制邮箱">📋</button><button class="btn btn-sm" onclick="dashRefresh()" title="刷新邮件">🔄</button></span></div><div class="loading"><div class="spinner"></div>加载邮件...</div>`;
   detailPane.innerHTML = '<div class="empty-state" style="padding:40px">选择一封邮件查看详情</div>';
 
   const res = await api(`/accounts/${accountId}/emails?top=30&skip=0&folder=inbox`);
   if (!res?.success || res.data?.error) {
-    mailPane.innerHTML = `<div class="dash-mail-pane-header">${esc(acctEmail)}</div><div class="empty-state" style="color:var(--danger);padding:30px">${esc(res?.data?.error || res?.error?.message || '获取邮件失败')}</div>`;
+    mailPane.innerHTML = `<div class="dash-mail-pane-header"><span>${esc(acctEmail)}</span><span style="display:flex;gap:6px"><button class="btn btn-sm" onclick="dashCopyEmail()" title="复制邮箱">📋</button><button class="btn btn-sm" onclick="dashRefresh()" title="刷新邮件">🔄</button></span></div><div class="empty-state" style="color:var(--danger);padding:30px">${esc(res?.data?.error || res?.error?.message || '获取邮件失败')}</div>`;
     return;
   }
 
@@ -278,11 +278,11 @@ async function dashSelectAccount(accountId) {
   dashEmailState.emails = items;
 
   if (items.length === 0) {
-    mailPane.innerHTML = `<div class="dash-mail-pane-header">${esc(acctEmail)}</div><div class="empty-state" style="padding:30px">收件箱暂无邮件</div>`;
+    mailPane.innerHTML = `<div class="dash-mail-pane-header"><span>${esc(acctEmail)}</span><span style="display:flex;gap:6px"><button class="btn btn-sm" onclick="dashCopyEmail()" title="复制邮箱">📋</button><button class="btn btn-sm" onclick="dashRefresh()" title="刷新邮件">🔄</button></span></div><div class="empty-state" style="padding:30px">收件箱暂无邮件</div>`;
     return;
   }
 
-  mailPane.innerHTML = `<div class="dash-mail-pane-header"><span>${esc(acctEmail)}</span><span style="font-size:11px;color:var(--text-dim)">${items.length} 封</span></div>`
+  mailPane.innerHTML = `<div class="dash-mail-pane-header"><span>${esc(acctEmail)}</span><span style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;color:var(--text-dim)">${items.length} 封</span><button class="btn btn-sm" onclick="dashCopyEmail()" title="复制邮箱">📋</button><button class="btn btn-sm" onclick="dashRefresh()" title="刷新邮件">🔄</button></span></div>`
     + items.map((e, i) => `<div class="dash-mail-item ${e.isRead ? '' : 'unread'}" id="dashMail${i}" onclick="dashViewEmail(${i})">
         <div class="mail-from">${esc(e.from?.name || e.from?.address || '未知')}</div>
         <div class="mail-subject">${esc(e.subject)}</div>
@@ -338,6 +338,19 @@ async function dashViewEmail(index) {
 
 function dashResizeFrame(frame) {
   try { frame.style.height = frame.contentDocument.body.scrollHeight + 40 + 'px'; } catch {}
+}
+
+// 仪表盘：复制当前选中邮箱地址
+function dashCopyEmail() {
+  const acc = state.accounts.find(a => a.id === dashEmailState.accountId);
+  if (!acc) { toast('请先选择邮箱', 'error'); return; }
+  navigator.clipboard.writeText(acc.email).then(() => toast('已复制: ' + acc.email)).catch(() => toast('复制失败', 'error'));
+}
+
+// 仪表盘：刷新当前邮箱的邮件
+function dashRefresh() {
+  if (dashEmailState.accountId) dashSelectAccount(dashEmailState.accountId);
+  else toast('请先选择邮箱', 'error');
 }
 
 // Jump to accounts page, optionally pre-filtering by status (from dashboard cards)
