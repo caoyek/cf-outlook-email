@@ -107,7 +107,7 @@ accounts.post('/', async (c) => {
       if (!trimmed) continue;
       const parts = trimmed.split('----');
       if (parts.length >= 4) {
-        const [email, password, clientId, refreshToken] = parts;
+        const [email, password, refreshToken, clientId] = parts;
         try {
           await run(
             c.env.DB,
@@ -174,7 +174,7 @@ accounts.get('/export', async (c) => {
     c.env.DB, sql, params
   );
 
-  const lines = rows.map(r => `${r.email}----${r.password || ''}----${r.client_id}----${r.refresh_token}`);
+  const lines = rows.map(r => `${r.email}----${r.password || ''}----${r.refresh_token}----${r.client_id}`);
   return ok({ content: lines.join('\n'), count: rows.length });
 });
 

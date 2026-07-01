@@ -678,7 +678,7 @@ async function exportAccounts(ids) {
 
   showModal('导出账号 (' + res.data.count + ' 个)', `
     <div class="form-group">
-      <label class="form-label">导出内容（格式：邮箱----密码----client_id----refresh_token）</label>
+      <label class="form-label">导出内容（格式：邮箱----密码----refresh_token----client_id）</label>
       <textarea class="form-textarea" id="exportData" rows="10" readonly style="font-size:12px">${esc(res.data.content)}</textarea>
     </div>
     <div style="display:flex;gap:8px">
@@ -953,7 +953,7 @@ window.addEventListener('message', function(e) {
 function showImportModal() {
   showModal('批量导入', `
     <div class="form-group"><label class="form-label">分组</label><select class="form-select" id="mImpGroup">${state.groups.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select></div>
-    <div class="form-group"><label class="form-label">账号数据 (每行一个: 邮箱----密码----client_id----refresh_token)</label><textarea class="form-textarea" id="mImpData" rows="8" placeholder="email----password----client_id----refresh_token"></textarea></div>
+    <div class="form-group"><label class="form-label">账号数据 (每行一个: 邮箱----密码----refresh_token----client_id)</label><textarea class="form-textarea" id="mImpData" rows="8" placeholder="email----password----refresh_token----client_id"></textarea></div>
   `, async () => {
     const data = document.getElementById('mImpData').value.trim();
     if (!data) { toast('请输入账号数据', 'error'); return false; }
