@@ -415,14 +415,42 @@ function dashBuildAcctListHtml(accounts) {
     const statusColor = a.status === 'active' ? 'var(--success)' : a.status === 'error' ? 'var(--danger)' : 'var(--text-dim)';
     const color = dashAvatarColors[i % dashAvatarColors.length];
     const active = dashEmailState.accountId === a.id ? ' active' : '';
+    const grp = state.groups.find(g => g.id === a.group_id);
+    const grpName = grp ? grp.name : '未分组';
+    const grpColor = grp?.color || '#888';
+    const groupOpts = state.groups.map(g =>
+      `<option value="${g.id}" ${g.id === a.group_id ? 'selected' : ''}>${esc(g.name)}</option>`
+    ).join('');
     return `<div class="dash-acct-item${active}" id="dashAcct${a.id}" onclick="dashSelectAccount(${a.id})">
       <div class="acct-avatar" style="background:${color}">${initial}</div>
       <div class="acct-info">
         <div class="acct-email" title="${esc(a.email)}">${esc(a.email)}</div>
-        <div class="acct-status" style="color:${statusColor}">${statusIcon} ${statusText}</div>
+        <div class="acct-status" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span style="color:${statusColor}">${statusIcon} ${statusText}</span>
+          <select class="dash-group-tag" style="background:${esc(grpColor)}20;color:${esc(grpColor)};border:1px solid ${esc(grpColor)}40"
+            onclick="event.stopPropagation()" onchange="dashMoveGroup(${a.id},this.value)">
+            ${groupOpts}
+          </select>
+        </div>
       </div>
     </div>`;
   }).join('');
+}
+
+// 仪表盘：快速移动邮箱到其他分组
+async function dashMoveGroup(accountId, newGroupId) {
+  const res = await api('/accounts/batch', {
+    method: 'POST',
+    body: JSON.stringify({ action: 'move', ids: [accountId], group_id: parseInt(newGroupId) })
+  });
+  if (res?.success) {
+    toast('已移动到新分组');
+    // 刷新 accounts 数据
+    await loadAccounts();
+    dashFilterGroup();
+  } else {
+    toast(res?.error?.message || '移动失败', 'error');
+  }
 }
 
 // 仪表盘：按分组筛选邮箱列表
