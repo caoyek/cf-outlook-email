@@ -1026,20 +1026,57 @@ window.addEventListener('message', function(e) {
 });
 
 function showImportModal() {
+  const importFormats = [
+    { label: '邮箱----密码----refresh_token----client_id', fields: ['email','password','refresh_token','client_id'] },
+    { label: '邮箱----密码----client_id----refresh_token', fields: ['email','password','client_id','refresh_token'] },
+    { label: '自定义顺序', fields: null },
+  ];
+  window._importFormats = importFormats;
+
+  const fieldLabels = { email: '邮箱', password: '密码', client_id: 'Client ID', refresh_token: 'Refresh Token' };
+  const allFields = ['email','password','client_id','refresh_token'];
+
   showModal('批量导入', `
     <div class="form-group"><label class="form-label">分组</label><select class="form-select" id="mImpGroup">${state.groups.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select></div>
-    <div class="form-group"><label class="form-label">账号数据 (每行一个: 邮箱----密码----refresh_token----client_id)</label><textarea class="form-textarea" id="mImpData" rows="8" placeholder="email----password----refresh_token----client_id"></textarea></div>
+    <div class="form-group">
+      <label class="form-label">数据格式</label>
+      <select class="form-select" id="mImpFormat" onchange="onImportFormatChange()">
+        ${importFormats.map((f, i) => `<option value="${i}">${esc(f.label)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group" id="customFieldOrderWrap" style="display:none">
+      <label class="form-label">自定义字段顺序（用 ---- 分隔，拖动调整）</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap" id="customFieldOrder">
+        ${allFields.map((f, i) => `<select class="form-select" style="flex:1;min-width:100px;font-size:12px" id="cfo${i}">
+          ${allFields.map(af => `<option value="${af}" ${af === f ? 'selected' : ''}>${fieldLabels[af]}</option>`).join('')}
+        </select>`).join('<span style="color:var(--text-dim);align-self:center">----</span>')}
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">账号数据（每行一个）</label><textarea class="form-textarea" id="mImpData" rows="8" placeholder="按上方格式粘贴数据"></textarea></div>
   `, async () => {
     const data = document.getElementById('mImpData').value.trim();
     if (!data) { toast('请输入账号数据', 'error'); return false; }
+    const fmtIdx = parseInt(document.getElementById('mImpFormat').value);
+    let fieldOrder;
+    if (importFormats[fmtIdx].fields) {
+      fieldOrder = importFormats[fmtIdx].fields;
+    } else {
+      fieldOrder = [0,1,2,3].map(i => document.getElementById('cfo'+i).value);
+    }
     const res = await api('/accounts', { method: 'POST', body: JSON.stringify({
       account_string: data,
+      field_order: fieldOrder,
       group_id: parseInt(document.getElementById('mImpGroup').value),
     })});
     if (res?.success) { toast(res.message || '导入成功'); navigate('accounts'); return true; }
     toast(res?.error?.message || '导入失败', 'error');
     return false;
   });
+}
+
+function onImportFormatChange() {
+  const idx = parseInt(document.getElementById('mImpFormat').value);
+  document.getElementById('customFieldOrderWrap').style.display = window._importFormats[idx].fields ? 'none' : '';
 }
 
 async function showEditAccountModal(id) {

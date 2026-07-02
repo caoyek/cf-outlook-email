@@ -88,6 +88,7 @@ accounts.get('/', async (c) => {
 accounts.post('/', async (c) => {
   const body = (await c.req.json().catch(() => ({}))) as {
     account_string?: string;
+    field_order?: string[];
     email?: string;
     client_id?: string;
     refresh_token?: string;
@@ -101,18 +102,26 @@ accounts.post('/', async (c) => {
   // Batch import mode
   if (body.account_string) {
     const lines = body.account_string.trim().split('\n');
+    // 默认字段顺序，可通过 field_order 自定义
+    const order = body.field_order || ['email', 'password', 'refresh_token', 'client_id'];
     let added = 0;
     for (const line of lines) {
       const trimmed = line.trim();
       if (!trimmed) continue;
       const parts = trimmed.split('----');
-      if (parts.length >= 4) {
-        const [email, password, refreshToken, clientId] = parts;
+      if (parts.length >= 2) {
+        const fields: Record<string, string> = {};
+        order.forEach((key, i) => { if (parts[i] !== undefined) fields[key] = parts[i].trim(); });
+        const email = fields.email;
+        const clientId = fields.client_id;
+        const refreshToken = fields.refresh_token;
+        const password = fields.password || '';
+        if (!email || !clientId || !refreshToken) return;
         try {
           await run(
             c.env.DB,
             'INSERT INTO accounts (email, password, client_id, refresh_token, group_id) VALUES (?, ?, ?, ?, ?)',
-            [email.trim(), password.trim(), clientId.trim(), refreshToken.trim(), groupId]
+            [email, password, clientId, refreshToken, groupId]
           );
           added++;
         } catch {
