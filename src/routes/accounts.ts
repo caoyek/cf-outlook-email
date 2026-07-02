@@ -174,8 +174,7 @@ accounts.get('/export', async (c) => {
     c.env.DB, sql, params
   );
 
-  const lines = rows.map(r => `${r.email}----${r.password || ''}----${r.refresh_token}----${r.client_id}`);
-  return ok({ content: lines.join('\n'), count: rows.length });
+  return ok({ rows, count: rows.length });
 });
 
 // POST /api/accounts/batch - batch operations (delete / move group)

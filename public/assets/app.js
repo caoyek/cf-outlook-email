@@ -701,18 +701,66 @@ async function exportAccounts(ids) {
     if (groupFilter) url += '?group_id=' + groupFilter;
   }
   const res = await api(url);
-  if (!res?.success || !res.data?.content) { toast('没有可导出的账号', 'error'); return; }
+  if (!res?.success || !res.data?.rows?.length) { toast('没有可导出的账号', 'error'); return; }
+
+  // 保存原始数据到全局供格式切换用
+  window._exportRows = res.data.rows;
+
+  const formatOptions = [
+    { label: '邮箱----密码----refresh_token----client_id', tpl: '{email}----{password}----{refresh_token}----{client_id}' },
+    { label: '邮箱----密码----client_id----refresh_token', tpl: '{email}----{password}----{client_id}----{refresh_token}' },
+    { label: '邮箱----密码----client_id', tpl: '{email}----{password}----{client_id}' },
+    { label: '邮箱----密码----refresh_token', tpl: '{email}----{password}----{refresh_token}' },
+    { label: '仅邮箱', tpl: '{email}' },
+    { label: '自定义模板', tpl: '' },
+  ];
 
   showModal('导出账号 (' + res.data.count + ' 个)', `
     <div class="form-group">
-      <label class="form-label">导出内容（格式：邮箱----密码----refresh_token----client_id）</label>
-      <textarea class="form-textarea" id="exportData" rows="10" readonly style="font-size:12px">${esc(res.data.content)}</textarea>
+      <label class="form-label">导出格式</label>
+      <select class="form-select" id="exportFormat" onchange="onExportFormatChange()">
+        ${formatOptions.map((f, i) => `<option value="${i}">${esc(f.label)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group" id="customTplWrap" style="display:none">
+      <label class="form-label">自定义模板（可用变量: {email} {password} {client_id} {refresh_token}）</label>
+      <input class="form-input" id="customTpl" value="{email}----{password}----{refresh_token}----{client_id}" oninput="applyExportFormat()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">导出内容</label>
+      <textarea class="form-textarea" id="exportData" rows="10" readonly style="font-size:12px"></textarea>
     </div>
     <div style="display:flex;gap:8px">
       <button class="btn btn-primary btn-sm" type="button" onclick="copyText(document.getElementById('exportData').value,this)">复制全部</button>
       <button class="btn btn-sm" type="button" onclick="downloadExport()">下载 TXT</button>
     </div>
   `, () => true);
+
+  // 存格式定义供切换用
+  window._exportFormats = formatOptions;
+  applyExportFormat();
+}
+
+function onExportFormatChange() {
+  const idx = parseInt(document.getElementById('exportFormat').value);
+  const wrap = document.getElementById('customTplWrap');
+  wrap.style.display = idx === window._exportFormats.length - 1 ? '' : 'none';
+  applyExportFormat();
+}
+
+function applyExportFormat() {
+  const idx = parseInt(document.getElementById('exportFormat').value);
+  const formats = window._exportFormats;
+  let tpl = formats[idx]?.tpl;
+  if (!tpl) tpl = document.getElementById('customTpl')?.value || '{email}';
+  const rows = window._exportRows || [];
+  const lines = rows.map(r =>
+    tpl.replace(/\{email\}/g, r.email || '')
+       .replace(/\{password\}/g, r.password || '')
+       .replace(/\{client_id\}/g, r.client_id || '')
+       .replace(/\{refresh_token\}/g, r.refresh_token || '')
+  );
+  document.getElementById('exportData').value = lines.join('\n');
 }
 
 // Export currently selected accounts (from the batch bar)
