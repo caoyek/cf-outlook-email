@@ -281,6 +281,9 @@ async function renderDashboard(el) {
             </select>
             <button class="btn btn-sm" onclick="navigate('groups')" title="管理分组" style="padding:4px 8px;font-size:11px;flex-shrink:0">⚙</button>
           </div>
+          <div style="padding:6px 10px;border-bottom:1px solid var(--border)">
+            <input class="search-input" id="dashAcctSearch" oninput="dashFilterGroup()" placeholder="搜索邮箱..." style="width:100%;padding:5px 10px;font-size:12px;height:28px">
+          </div>
           <div id="dashAcctList">${dashBuildAcctListHtml(state.accounts)}</div>
         </div>
         <div class="dash-mail-pane" id="dashMailPane">
@@ -452,10 +455,12 @@ async function dashMoveGroup(accountId, newGroupId) {
   }
 }
 
-// 仪表盘：按分组筛选邮箱列表
+// 仪表盘：按分组和搜索词筛选邮箱列表
 function dashFilterGroup() {
   const groupId = document.getElementById('dashGroupFilter')?.value;
-  const filtered = groupId ? state.accounts.filter(a => a.group_id === parseInt(groupId)) : state.accounts;
+  const keyword = (document.getElementById('dashAcctSearch')?.value || '').trim().toLowerCase();
+  let filtered = groupId ? state.accounts.filter(a => a.group_id === parseInt(groupId)) : state.accounts;
+  if (keyword) filtered = filtered.filter(a => (a.email || '').toLowerCase().includes(keyword));
   const listEl = document.getElementById('dashAcctList');
   if (listEl) listEl.innerHTML = dashBuildAcctListHtml(filtered);
 }
